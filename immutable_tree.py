@@ -1,3 +1,8 @@
+import os
+import struct
+import portalocker
+import pickle
+
 class ValueRef(object):
     " a reference to a string value on disk"
     def __init__(self, referent=None, address=0):
@@ -33,7 +38,6 @@ class ValueRef(object):
             self.prepare_to_store(storage)
             self._address = storage.write(self.referent_to_bytes(self._referent))
 
-import pickle
 class BinaryNodeRef(ValueRef):
     "reference to a btree node on disk"
 
@@ -63,8 +67,7 @@ class BinaryNodeRef(ValueRef):
             ValueRef(address=d['value']),
             BinaryNodeRef(address=d['right']),
         )
-        
-        
+              
 class BinaryNode(object):
     @classmethod
     def from_node(cls, node, **kwargs):
@@ -214,12 +217,6 @@ class BinaryTree(object):
             if next_node is None:
                 return node
             node = next_node
-            
-import os
-import struct
-
-import portalocker
-
 
 class Storage(object):
     SUPERBLOCK_SIZE = 4096
