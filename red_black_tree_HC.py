@@ -39,6 +39,7 @@ class RedBlackNodeRef(ValueRef):
 
 
 class RedBlackNode(BinaryNode):
+
     @classmethod
     def from_node(cls, node, **kwargs):
         "clone a node with some changes from another one"
@@ -57,32 +58,9 @@ class RedBlackNode(BinaryNode):
         self.right_ref = right_ref
         self.color = color
 
-
-class RedBlackTree(BinaryTree):
-
-    def __init__(self, left_ref, key, value_ref, right_ref, color=Color.RED):
-        self.key = key
-        self.value_ref = value_ref
-        self.right_ref = right_ref
-        self.value_ref = value_ref
-        self.color = color
-
-    @property
-    def color(self):
-        return self._color
-
     def blacken(self):
         if self.is_red():
-            return RedBlackTree(
-                self.left,
-                self.value,
-                self.right,
-                color=Color.BLACK,
-            )
-        return self
-
-    def is_empty(self):
-        return False
+            self.color = Color.BLACK
 
     def is_black(self):
         return self._color == Color.BLACK
@@ -91,7 +69,28 @@ class RedBlackTree(BinaryTree):
         return self._color == Color.RED
 
 
+class RedBlackTree(BinaryTree):
+
+    # def __init__(self, left_ref, key, value_ref, right_ref, color=Color.RED):
+    #     self.key = key
+    #     self.value_ref = value_ref
+    #     self.right_ref = right_ref
+    #     self.value_ref = value_ref
+    #     self.color = color
+
+    def _refresh_tree_ref(self):
+        "get reference to new tree if it has changed"
+        self._tree_ref = RedBlackRef(
+            address=self._storage.get_root_address())
+
+    def is_empty(self):
+        return False
+
+    def _blacken(self):
+        self._follow(self._tree_ref)._blacken()
+
     def rotate_left(self):
+        self.right = EmptyRedBlackTree().update(self.right.left)
         return RedBlackTree(
             RedBlackTree(
                 self.left,
@@ -105,6 +104,11 @@ class RedBlackTree(BinaryTree):
         )
 
     def rotate_right(self):
+        node = self._follow(self._tree_ref)
+        left = self._follow(node.left_ref)
+        right = self._follow(node.right_ref)
+        node.value_ref = left.value_ref
+
         return RedBlackTree(
             self.left.left,
             self.left.value,
@@ -118,12 +122,12 @@ class RedBlackTree(BinaryTree):
         )
 
     def recolored(self):
-        return RedBlackTree(
-            self.left.blacken(),
-            self.value,
-            self.right.blacken(),
-            color=Color.RED,
-        )
+        node = self._follow(self._tree_ref)
+        left = self._follow(node.left_ref)
+        right = self._follow(node.right_ref)
+        left._blacken()
+        right._blacken()
+        node._color = RED
 
     def balance(self):
         if self.is_red():
@@ -245,6 +249,7 @@ class EmptyRedBlackTree(RedBlackTree):
 
     def __len__(self):
         return 0
+
 class DBDB(object):
 
     def __init__(self, f):
