@@ -116,7 +116,6 @@ class BinaryTree(object):
 
     def get(self, key):
         "get value for a key"
-        #your code here
         #if tree is not locked by another writer
         #refresh the references and get new tree if needed
         if not self._storage.locked:
@@ -127,7 +126,7 @@ class BinaryTree(object):
         while node is not None:
             if key < node.key:
                 node = self._follow(node.left_ref)
-            elif key < node.key:
+            elif key > node.key:
                 node = self._follow(node.right_ref)
             else:
                 return self._follow(node.value_ref)
@@ -148,7 +147,7 @@ class BinaryTree(object):
 
     def _insert(self, node, key, value_ref):
         "insert a new node creating a new path from root"
-        #create a tree ifnthere was none so far
+        #create a tree if there was none so far
         if node is None:
             new_node = BinaryNode(
                 BinaryNodeRef(), key, value_ref, BinaryNodeRef())
@@ -344,3 +343,12 @@ class DBDB(object):
     def delete(self, key):
         self._assert_not_closed()
         return self._tree.delete(key)
+
+import os
+def connect(dbname):
+    try:
+        f = open(dbname, 'r+b')
+    except IOError:
+        fd = os.open(dbname, os.O_RDWR | os.O_CREAT)
+        f = os.fdopen(fd, 'r+b')
+    return DBDB(f)
