@@ -63,10 +63,10 @@ class RedBlackNode(BinaryNode):
             self.color = Color.BLACK
 
     def is_black(self):
-        return self._color == Color.BLACK
+        return self.color == Color.BLACK
 
     def is_red(self):
-        return self._color == Color.RED
+        return self.color == Color.RED
 
 
 class RedBlackTree(BinaryTree):
@@ -90,36 +90,49 @@ class RedBlackTree(BinaryTree):
         self._follow(self._tree_ref)._blacken()
 
     def rotate_left(self):
-        self.right = EmptyRedBlackTree().update(self.right.left)
-        return RedBlackTree(
-            RedBlackTree(
-                self.left,
-                self.value,
-                EmptyRedBlackTree().update(self.right.left),
-                color=self.color,
-            ),
-            self.right.value,
-            self.right.right,
-            color=self.right.color,
-        )
+        # self.right = EmptyRedBlackTree().update(self.right.left)
+        # return RedBlackTree(
+        #     RedBlackTree(
+        #         self.left,
+        #         self.value,
+        #         EmptyRedBlackTree().update(self.right.left),
+        #         color=self.color,
+        #     ),
+        #     self.right.value,
+        #     self.right.right,
+        #     color=self.right.color,
+        # )
 
-    def rotate_right(self):
         node = self._follow(self._tree_ref)
         left = self._follow(node.left_ref)
         right = self._follow(node.right_ref)
-        node.value_ref = left.value_ref
+        node.left_ref = node.value_ref
+        node.right_ref = right.right_ref
+        node.value_ref = right.value_ref
+        self.color = right.color
 
-        return RedBlackTree(
-            self.left.left,
-            self.left.value,
-            RedBlackTree(
-                EmptyRedBlackTree().update(self.left.right),
-                self.value,
-                self.right,
-                color=self.color,
-            ),
-            color=self.left.color,
-        )
+
+    def rotate_right(self):
+        # return RedBlackTree(
+        #     self.left.left,
+        #     self.left.value,
+        #     RedBlackTree(
+        #         EmptyRedBlackTree().update(self.left.right),
+        #         self.value,
+        #         self.right,
+        #         color=self.color,
+        #     ),
+        #     color=self.left.color,
+        # )
+
+        node = self._follow(self._tree_ref)
+        left = self._follow(node.left_ref)
+        right = self._follow(node.right_ref)
+        node.right_ref = node.value_ref
+        node.value_ref = left.value_ref
+        node.left_ref = left.left_ref
+        self.color = left.color
+
 
     def recolored(self):
         node = self._follow(self._tree_ref)
@@ -127,7 +140,7 @@ class RedBlackTree(BinaryTree):
         right = self._follow(node.right_ref)
         left._blacken()
         right._blacken()
-        node._color = RED
+        node.color = Color.RED
 
     def balance(self):
         if self.is_red():
