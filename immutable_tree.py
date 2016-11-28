@@ -315,7 +315,7 @@ class Storage(object):
     def closed(self):
         return self._f.closed
         
-class DBDB(object):
+class it_DBDB(object):
 
     def __init__(self, f):
         self._storage = Storage(f)
@@ -344,11 +344,10 @@ class DBDB(object):
         self._assert_not_closed()
         return self._tree.delete(key)
 
-import os
-def connect(dbname):
+def it_connect(dbname):
     try:
         f = open(dbname, 'r+b')
     except IOError:
         fd = os.open(dbname, os.O_RDWR | os.O_CREAT)
         f = os.fdopen(fd, 'r+b')
-    return DBDB(f)
+    return it_DBDB(f)

@@ -35,10 +35,10 @@ class RedBlackNodeRef(ValueRef):
         "unpickle bytes to get a node object"
         d = pickle.loads(string)
         return RedBlackNode(
-            BinaryNodeRef(address=d['left']),
+            RedBlackNodeRef(address=d['left']),
             d['key'],
             ValueRef(address=d['value']),
-            BinaryNodeRef(address=d['right']),
+            RedBlackNodeRef(address=d['right']),
             d['color']
         )
 
@@ -89,6 +89,9 @@ class RedBlackTree(BinaryTree):
             return node
         newnode = RedBlackNode.from_node(node, color=Color.BLACK)
         return RedBlackNodeRef(newnode)
+
+    def rootkey(self):
+        return self._follow(self._tree_ref).key
 
     def rotate_left(self, node):
         right = self._follow(node.right_ref)
@@ -205,7 +208,7 @@ class RedBlackTree(BinaryTree):
                     node,
                     right_ref=RedBlackNodeRef(referent=newright)))
         else: #create a new node to represent this data
-            new_node = RefBlackNode.from_node(node, value_ref=value_ref)
+            new_node = RedBlackNode.from_node(node, value_ref=value_ref)
         #new_node = self._blacken(new_node)
         return RedBlackNodeRef(referent=new_node)
 
@@ -243,6 +246,9 @@ class DBDB(object):
     def set(self, key, value):
         self._assert_not_closed()
         return self._tree.set(key, value)
+
+    def getRootKey(self):
+        return self._tree.rootkey()
 
     def delete(self, key):
         self._assert_not_closed()
