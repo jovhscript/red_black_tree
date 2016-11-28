@@ -1,11 +1,16 @@
 from immutable_tree import *
-
+import os
 
 class Color(object):
     RED = 0
     BLACK = 1
 
 class RedBlackNodeRef(ValueRef):
+    " a reference to a string value on disk"
+    def __init__(self, referent=None, address=0):
+        self._referent = referent #value to store
+        self._address = address #address to store at
+
     "reference to a btree node on disk"
 
     #calls the BinaryNode's store_refs
@@ -51,16 +56,16 @@ class RedBlackNode(BinaryNode):
             color=kwargs.get('color', node.color),
         )
 
-    def __init__(self, left_ref, key, value_ref, right_ref, color):
+    def __init__(self, left_ref, key, value_ref, right_ref, color=Color.RED):
         self.left_ref = left_ref
         self.key = key
         self.value_ref = value_ref
         self.right_ref = right_ref
         self.color = color
 
-    def blacken(self):
-        if self.is_red():
-            self.color = Color.BLACK
+    # def blacken(self):
+    #     if self.is_red():
+    #         self.color = Color.BLACK
 
     def is_black(self):
         return self.color == Color.BLACK
@@ -68,138 +73,112 @@ class RedBlackNode(BinaryNode):
     def is_red(self):
         return self.color == Color.RED
 
+    def is_empty(self):
+        return False
+
+# class EmptyRedBlackNode(RedBlackNode):
+#     def __init__(self):
+#         self.color = Color.BLACK
+#         self.left_ref = RedBlackNodeRef()
+#         self.right_ref = RedBlackNodeRef()
+
+#     def is_empty(self):
+#         return True
+
 
 class RedBlackTree(BinaryTree):
 
-    # def __init__(self, left_ref, key, value_ref, right_ref, color=Color.RED):
-    #     self.key = key
-    #     self.value_ref = value_ref
-    #     self.right_ref = right_ref
-    #     self.value_ref = value_ref
-    #     self.color = color
-
     def _refresh_tree_ref(self):
         "get reference to new tree if it has changed"
-        self._tree_ref = RedBlackRef(
+        self._tree_ref = RedBlackNodeRef(
             address=self._storage.get_root_address())
 
     def is_empty(self):
         return False
 
-    def _blacken(self):
-        self._follow(self._tree_ref)._blacken()
+    def _blacken(self, node):
+        #node = self._follow(ref)
+        if node is None:
+            return node
+        return RedBlackNode.from_node(node, color=Color.BLACK)
 
-    def rotate_left(self):
-        # self.right = EmptyRedBlackTree().update(self.right.left)
-        # return RedBlackTree(
-        #     RedBlackTree(
-        #         self.left,
-        #         self.value,
-        #         EmptyRedBlackTree().update(self.right.left),
-        #         color=self.color,
-        #     ),
-        #     self.right.value,
-        #     self.right.right,
-        #     color=self.right.color,
-        # )
+    def rotate_left(self, node):
+        right = self._follow(node.right_ref)
+        newleft_right = RedBlackNode.from_node(self._follow(right.left_ref),
+                                               left_ref = RedBlackNodeRef(),
+                                               right_ref = RedBlackNodeRef(),
+                                               color = node.color)
+        newleft = RedBlackNode.from_node(node, 
+                                         right_ref = RedBlackNodeRef(referent=newleft_right))
+        newnode = RedBlackNode.from_node(right,
+                                         left_ref = RedBlackNodeRef(referent=newleft))
+        return newnode
 
-        node = self._follow(self._tree_ref)
+
+    def rotate_right(self, node):
+        left = self._follow(node.left_ref)
+        newright_left = RedBlackNode.from_node(self._follow(left.right_ref),
+                                               left_ref = RedBlackNodeRef(),
+                                               right_ref = RedBlackNodeRef(),
+                                               color = node.color)
+                                        
+        newright = RedBlackNode.from_node(node, 
+                                          left_ref = RedBlackNodeRef(referent=newright_left))
+        newnode = RedBlackNode.from_node(left,
+                                         right_ref = RedBlackNodeRef(referent=newright))
+
+        return newnode
+                                      
+    def recolor(self, node):
+        left = self._blacken(self._follow(node.left_ref))
+        right = self._blacken(self._follow(node.right_ref))
+
+        return RedBlackNode.from_node(node, 
+                                      left_ref = RedBlackNodeRef(referent = left),
+                                      right_ref = RedBlackNodeRef(referent = right),
+                                      color=Color.RED)
+
+    def _isred(self, node):
+        if node is None:
+            return False
+        else:
+            return node.color == Color.RED
+
+    def balance(self, node):
+        #node = self._follow(ref)
+
+        if self._isred(node) | (node is None):
+            return node
+
         left = self._follow(node.left_ref)
         right = self._follow(node.right_ref)
-        node.left_ref = node.value_ref
-        node.right_ref = right.right_ref
-        node.value_ref = right.value_ref
-        self.color = right.color
 
+        if self._isred(left):
+            if self._isred(right):
+                newnode =  node
+            if self._isred(self._follow(left.left_ref)):
+                newnode = self.rotate_right(node)
+            if self._isred(self._follow(left.right_ref)):
+                newleft = self.rotate_left(left)
+                newnode = RedBlackNode.from_node(node, 
+                                                 left_ref = RedBlackNodeRef(referent = newleft))
+                newnode = self.rotate_right(newnode)
+            return self.recolor(newnode)
+        if self._isred(right):
+            if self._isred(self._follow(right.right_ref)):
+                newnode = self.rotate_left(node)
+            if self._isred(self._follow(right.left_ref)):
+                newright = self.rotate_right(right)
+                newnode = RedBlackNode.from_node(node, 
+                                                 right_ref = RedBlackNodeRef(referent = newright))
+                newnode = self.rotate_left(newnode)
+            return self.recolor(newnode)
 
-    def rotate_right(self):
-        # return RedBlackTree(
-        #     self.left.left,
-        #     self.left.value,
-        #     RedBlackTree(
-        #         EmptyRedBlackTree().update(self.left.right),
-        #         self.value,
-        #         self.right,
-        #         color=self.color,
-        #     ),
-        #     color=self.left.color,
-        # )
+        return node
+        
+                
 
-        node = self._follow(self._tree_ref)
-        left = self._follow(node.left_ref)
-        right = self._follow(node.right_ref)
-        node.right_ref = node.value_ref
-        node.value_ref = left.value_ref
-        node.left_ref = left.left_ref
-        self.color = left.color
-
-
-    def recolored(self):
-        node = self._follow(self._tree_ref)
-        left = self._follow(node.left_ref)
-        right = self._follow(node.right_ref)
-        left._blacken()
-        right._blacken()
-        node.color = Color.RED
-
-    def balance(self):
-        if self.is_red():
-            return self
-
-        if self.left.is_red():
-            if self.right.is_red():
-                return self.recolored()
-            if self.left.left.is_red():
-                return self.rotate_right().recolored()
-            if self.left.right.is_red():
-                return RedBlackTree(
-                    self.left.rotate_left(),
-                    self.value,
-                    self.right,
-                    color=self.color,
-                ).rotate_right().recolored()
-            return self
-
-        if self.right.is_red():
-            if self.right.right.is_red():
-                return self.rotate_left().recolored()
-            if self.right.left.is_red():
-                return RedBlackTree(
-                    self.left,
-                    self.value,
-                    self.right.rotate_right(),
-                    color=self.color,
-                ).rotate_left().recolored()
-        return self
-
-    def update(self, node):
-        if node.is_empty():
-            return self
-        if node.value < self.value:
-            return RedBlackTree(
-                self.left.update(node).balance(),
-                self.value,
-                self.right,
-                color=self.color,
-            ).balance()
-        return RedBlackTree(
-            self.left,
-            self.value,
-            self.right.update(node).balance(),
-            color=self.color,
-        ).balance()
-
-    # def insert(self, key, value):
-    #     return self.update(
-    #         RedBlackTree(
-    #             EmptyRedBlackTree(),
-    #             value,
-    #             EmptyRedBlackTree(),
-    #             color=Color.RED,
-    #         )
-    #     ).blacken()
-
-    def set(self, key, value, color):
+    def set(self, key, value):
         "set a new value in the tree. will cause a new tree"
         #try to lock the tree. If we succeed make sure
         #we dont lose updates from any other process
@@ -209,65 +188,48 @@ class RedBlackTree(BinaryTree):
         node = self._follow(self._tree_ref)
         value_ref = ValueRef(value)
         #insert and get new tree ref
-        self._tree_ref = self._insert(node, key, value_ref, color)
+        self._tree_ref = self._insert(node, key, value_ref)
 
 
-    def _insert(self, node, key, value_ref, color=Color.RED):
+    def _insert(self, node, key, value_ref):
         "insert a new node creating a new path from root"
         #create a tree if there was none so far
         if node is None:
+            #print ('a')
             new_node = RedBlackNode(
-                RedBlackNodeRef(), key, value_ref, RedBlackNodeRef(), color)
+               RedBlackNodeRef(), key, value_ref, RedBlackNodeRef())
         elif key < node.key:
-            new_node = RedBlackNode.from_node(
-                node,
-                left_ref=self._insert(
-                    self._follow(node.left_ref), key, value_ref, color).balance())
+            newleft_ref = self._insert(self._follow(node.left_ref), key, value_ref)
+            newleft = self.balance(self._follow(newleft_ref))
+            new_node = self.balance(RedBlackNode.from_node(
+                    node,
+                    left_ref=RedBlackNodeRef(referent=newleft)))
         elif key > node.key:
-            new_node = RedBlackNode.from_node(
-                node,
-                right_ref=self._insert(
-                    self._follow(node.right_ref), key, value_ref, color).balance())
+            newright_ref = self._insert(self._follow(node.right_ref), key, value_ref)
+            newright = self.balance(self._follow(newright_ref))
+            new_node = self.balance(RedBlackNode.from_node(
+                    node,
+                    right_ref=RedBlackNodeRef(referent=newright)))
         else: #create a new node to represent this data
-            new_node = BinaryNode.from_node(node, value_ref=value_ref)
+            new_node = RefBlackNode.from_node(node, value_ref=value_ref)
+        new_node = self._blacken(new_node)
         return RedBlackNodeRef(referent=new_node)
 
 
-class EmptyRedBlackTree(RedBlackTree):
+def connect(dbname):
+    try:
+        f = open(dbname, 'r+b')
+    except IOError:
+        fd = os.open(dbname, os.O_RDWR | os.O_CREAT)
+        f = os.fdopen(fd, 'r+b')
+    return DBDB(f)
 
-    def __init__(self):
-        self._color = Color.BLACK
-
-    def is_empty(self):
-        return True
-
-    def insert(self, value):
-        return RedBlackTree(
-            EmptyRedBlackTree(),
-            value,
-            EmptyRedBlackTree(),
-            color=Color.RED,
-        )
-
-    def update(self, node):
-        return node
-
-    @property
-    def left(self):
-        return EmptyRedBlackTree()
-
-    @property
-    def right(self):
-        return EmptyRedBlackTree()
-
-    def __len__(self):
-        return 0
 
 class DBDB(object):
 
     def __init__(self, f):
         self._storage = Storage(f)
-        self._tree = BinaryTree(self._storage)
+        self._tree = RedBlackTree(self._storage)
 
     def _assert_not_closed(self):
         if self._storage.closed:
@@ -286,7 +248,7 @@ class DBDB(object):
 
     def set(self, key, value):
         self._assert_not_closed()
-        return self._tree.set(key, value, color=Color.RED)
+        return self._tree.set(key, value)
 
     def delete(self, key):
         self._assert_not_closed()
