@@ -4,52 +4,136 @@ import portalocker
 import pickle
 
 class ValueRef(object):
-    " a reference to a string value on disk"
+    """
+    This class produces a reference to a string value on the disk.   
+    """
+
     def __init__(self, referent=None, address=0):
+    """
+    The constructor of the class takes for arguments a referent and address
+    
+    Parameters
+    ----------
+    
+    referent: value to store for the string, optional
+    address: target address for the string value, optional
+    
+    Attributes
+    ----------
+    
+    self._referent: value
+    self._address: address
+    """
         self._referent = referent #value to store
         self._address = address #address to store at
         
     @property
     def address(self):
+    """
+    Method that returns the address stored in ValueRef.
+        
+    """
         return self._address
     
     def prepare_to_store(self, storage):
+    """
+    Method that passes in preparation for storage
+    
+    Parameter
+    ---------
+    
+    storage: a storage address at which the value is stored
+    
+    """
         pass
 
     @staticmethod
     def referent_to_bytes(referent):
+    """
+    Method that encodes the referent in utf-8
+    
+    Parameter
+    ---------
+    
+    referent: the value to be stored in the class
+    
+    """
         return referent.encode('utf-8')
 
     @staticmethod
     def bytes_to_referent(bytes):
+    """
+    Method that decodes the stored bytes in utf-8
+    
+    Parameter
+    ---------
+    
+    bytes: the storage encoded in utf-8
+    
+    """
         return bytes.decode('utf-8')
 
     
     def get(self, storage):
+    """
+    Method that reads bytes for the value from the disk.
+    
+    Parameter
+    ---------
+    
+    storage: the referent's storage address, to be decoded and then obtained through self._referent.
+    
+    """
         "read bytes for value from disk"
         if self._referent is None and self._address:
             self._referent = self.bytes_to_referent(storage.read(self._address))
         return self._referent
 
     def store(self, storage):
-        "store bytes for value to disk"
+    """
+    Method that stores bytes for the value to the disk.
+    
+    Parameter
+    ---------
+    
+    storage: the referent's storage address, to be encoded and then stored in self._address,
+    
+    """
         #called by BinaryNode.store_refs
         if self._referent is not None and not self._address:
             self.prepare_to_store(storage)
             self._address = storage.write(self.referent_to_bytes(self._referent))
 
 class BinaryNodeRef(ValueRef):
-    "reference to a btree node on disk"
-
+    """
+    This class produces a reference to a binary search tree node on the disk.   
+    """
+    
     #calls the BinaryNode's store_refs
     def prepare_to_store(self, storage):
-        "have a node store its refs"
+    """
+    Method that stores refs for the node 
+    
+    Parameter
+    ---------
+    
+    storage: a storage address at which the value is stored
+    
+    """
         if self._referent:
             self._referent.store_refs(storage)
 
     @staticmethod
     def referent_to_bytes(referent):
-        "use pickle to convert node to bytes"
+    """
+    Method that uses pickle to convert the node to bytes
+    
+    Parameter
+    ---------
+    
+    referent: the value to be stored in the node
+    
+    """
         return pickle.dumps({
             'left': referent.left_ref.address,
             'key': referent.key,
@@ -59,7 +143,15 @@ class BinaryNodeRef(ValueRef):
 
     @staticmethod
     def bytes_to_referent(string):
-        "unpickle bytes to get a node object"
+    """
+    Method that unpickles bytes to obtain a node object
+    
+    Parameter
+    ---------
+    
+    referent: the value to be stored in the node
+    
+    """
         d = pickle.loads(string)
         return BinaryNode(
             BinaryNodeRef(address=d['left']),
@@ -69,9 +161,21 @@ class BinaryNodeRef(ValueRef):
         )
               
 class BinaryNode(object):
+    """
+    This class stores data associated with a particular node whose refs are stored in BinaryNodeRef
+    """
     @classmethod
     def from_node(cls, node, **kwargs):
-        "clone a node with some changes from another one"
+        """
+        Method that clones a node given changes from another node
+    
+        Parameters
+        ----------
+    
+        node: the node whose properties will be emulated
+        kwargs: obtain key, value, right and left refs to clone
+    
+        """
         return cls(
             left_ref=kwargs.get('left_ref', node.left_ref),
             key=kwargs.get('key', node.key),
@@ -80,13 +184,41 @@ class BinaryNode(object):
         )
 
     def __init__(self, left_ref, key, value_ref, right_ref):
+        """
+        The constructor of the class takes for arguments the refs belonging to the node itself, its right child, its left child, and its key.
+    
+        Parameters
+        ----------
+    
+        left_ref: reference for left node, mandatory
+        key: the key value of the node, mandatory
+        value_ref: reference for node, mandatory
+        right_ref: reference for right node, mandatory
+        
+        Attributes
+        ----------
+    
+        self.left_ref: ref address
+        self.key: value
+        self.value_ref: ref address
+        self.right_ref: ref address
+        
+        """
         self.left_ref = left_ref
         self.key = key
         self.value_ref = value_ref
         self.right_ref = right_ref
 
     def store_refs(self, storage):
-        "method for a node to store all of its stuff"
+        """
+        Method that stores all of the node's properties in references
+    
+        Parameters
+        ----------
+    
+        storage: the storage at which to store refs
+    
+        """
         self.value_ref.store(storage)
         #calls BinaryNodeRef.store. which calls
         #BinaryNodeRef.prepate_to_store
@@ -97,25 +229,59 @@ class BinaryNode(object):
         
         
 class BinaryTree(object):
-    "Immutable Binary Tree class. Constructs new tree on changes"
+    """
+    Immutable Binary Tree class. Constructs new tree on changes.
+    """
+    
     def __init__(self, storage):
+        """
+        The constructor of the class takes for arguments a storage reference
+        
+        Parameters
+        ----------
+        
+        storage: storage reference address, compulsory
+        
+        Attributes
+        ----------
+        
+        self._storage: address
+        self._refresh_tree_ref(): address
+        """
         self._storage = storage
         self._refresh_tree_ref()
 
     def commit(self):
-        "changes are final only when committed"
+        """
+        Method to ensure that changes are final only when committed
+        
+        """
+        
         #triggers BinaryNodeRef.store
         self._tree_ref.store(self._storage)
         #make sure address of new tree is stored
         self._storage.commit_root_address(self._tree_ref.address)
 
     def _refresh_tree_ref(self):
-        "get reference to new tree if it has changed"
+        """
+        Method to get reference to new tree if it has changed
+        
+        """
+        
         self._tree_ref = BinaryNodeRef(
             address=self._storage.get_root_address())
 
     def get(self, key):
-        "get value for a key"
+        """
+        Method that obtains the value stores in a given key
+        
+        Parameter
+        ---------
+        
+        key: a lookup value that will throw a KeyError if it doesn't exist in the tree
+        
+        """
+        
         #if tree is not locked by another writer
         #refresh the references and get new tree if needed
         if not self._storage.locked:
@@ -133,7 +299,17 @@ class BinaryTree(object):
         raise KeyError
 
     def set(self, key, value):
-        "set a new value in the tree. will cause a new tree"
+        """
+        Method that sets a new value in the tree. Since the tree is immutable, a new tree is created.
+        
+        Parameters
+        ----------
+        
+        key: a lookup value
+        value: the value that will be stored for the key
+        
+        """
+        
         #try to lock the tree. If we succeed make sure
         #we dont lose updates from any other process
         if self._storage.lock():
@@ -146,7 +322,17 @@ class BinaryTree(object):
 
 
     def _insert(self, node, key, value_ref):
-        "insert a new node creating a new path from root"
+        """
+        Method that inserts a new node, creating a new path from tree's root.
+        
+        Parameters
+        ----------
+        
+        key: a lookup value
+        node: address
+        value_ref: the reference address of the new node as per its new path from the tree root
+        
+        """
         #create a tree if there was none so far
         if node is None:
             new_node = BinaryNode(
@@ -166,14 +352,33 @@ class BinaryTree(object):
         return BinaryNodeRef(referent=new_node)
 
     def delete(self, key):
-        "delete node with key, creating new tree and path"
+        """
+        Method that deletes node given key value, creating both a new tree and path to any nodes connected to the deleted node.
+        
+        Parameters
+        ----------
+        
+        key: a lookup value
+        
+        """
+    
         if self._storage.lock():
             self._refresh_tree_ref()
         node = self._follow(self._tree_ref)
         self._tree_ref = self._delete(node, key)
 
     def _delete(self, node, key):
-        "underlying delete implementation"
+        """
+        Method that implements the deletion of a node.
+        
+        Parameters
+        ----------
+        
+        node: reference address for deleted node
+        key: a lookup value
+        
+        """
+        
         if node is None:
             raise KeyError
         elif key < node.key:
@@ -206,11 +411,30 @@ class BinaryTree(object):
         return BinaryNodeRef(referent=new_node)
 
     def _follow(self, ref):
-        "get a node from a reference"
+        """
+        Method that identifies a node from a reference address.
+        
+        Parameters
+        ----------
+        
+        ref: reference address for a particular node
+        
+        """        
+        
         #calls BinaryNodeRef.get
         return ref.get(self._storage)
 
     def _find_max(self, node):
+        """
+        Method that finds the right-most node associated with a particular node,
+        If it doesn't exist, the input node itself is returned.
+        
+        Parameters
+        ----------
+        
+        node: the node for which we would like to find any max leaf
+        
+        """
         while True:
             next_node = self._follow(node.right_ref)
             if next_node is None:
