@@ -9,96 +9,96 @@ class ValueRef(object):
     """
 
     def __init__(self, referent=None, address=0):
-    """
-    The constructor of the class takes for arguments a referent and address
-    
-    Parameters
-    ----------
-    
-    referent: value to store for the string, optional
-    address: target address for the string value, optional
-    
-    Attributes
-    ----------
-    
-    self._referent: value
-    self._address: address
-    """
+        """
+        The constructor of the class takes for arguments a referent and address
+        
+        Parameters
+        ----------
+        
+        referent: value to store for the string, optional
+        address: target address for the string value, optional
+        
+        Attributes
+        ----------
+        
+        self._referent: value
+        self._address: address
+        """
         self._referent = referent #value to store
         self._address = address #address to store at
         
     @property
     def address(self):
-    """
-    Method that returns the address stored in ValueRef.
+        """
+        Method that returns the address stored in ValueRef.
         
-    """
+        """
         return self._address
     
     def prepare_to_store(self, storage):
-    """
-    Method that passes in preparation for storage
-    
-    Parameter
-    ---------
-    
-    storage: a storage address at which the value is stored
-    
-    """
+        """
+        Method that passes in preparation for storage
+        
+        Parameter
+        ---------
+        
+        storage: a storage address at which the value is stored
+        
+        """
         pass
 
     @staticmethod
     def referent_to_bytes(referent):
-    """
-    Method that encodes the referent in utf-8
-    
-    Parameter
-    ---------
-    
-    referent: the value to be stored in the class
-    
-    """
+        """
+        Method that encodes the referent in utf-8
+        
+        Parameter
+        ---------
+        
+        referent: the value to be stored in the class
+        
+        """
         return referent.encode('utf-8')
 
     @staticmethod
     def bytes_to_referent(bytes):
-    """
-    Method that decodes the stored bytes in utf-8
-    
-    Parameter
-    ---------
-    
-    bytes: the storage encoded in utf-8
-    
-    """
+        """
+        Method that decodes the stored bytes in utf-8
+        
+        Parameter
+        ---------
+        
+        bytes: the storage encoded in utf-8
+        
+        """
         return bytes.decode('utf-8')
 
     
     def get(self, storage):
-    """
-    Method that reads bytes for the value from the disk.
-    
-    Parameter
-    ---------
-    
-    storage: the referent's storage address, to be decoded and then obtained through self._referent.
-    
-    """
+        """
+        Method that reads bytes for the value from the disk.
+        
+        Parameter
+        ---------
+        
+        storage: the referent's storage address, to be decoded and then obtained through self._referent.
+        
+        """
         "read bytes for value from disk"
         if self._referent is None and self._address:
             self._referent = self.bytes_to_referent(storage.read(self._address))
         return self._referent
 
     def store(self, storage):
-    """
-    Method that stores bytes for the value to the disk.
-    
-    Parameter
-    ---------
-    
-    storage: the referent's storage address, to be encoded and then stored in self._address,
-    
-    """
+        """
+        Method that stores bytes for the value to the disk.
+        
+        Parameter
+        ---------
+        
+        storage: the referent's storage address, to be encoded and then stored in self._address,
+        
+        """
         #called by BinaryNode.store_refs
         if self._referent is not None and not self._address:
             self.prepare_to_store(storage)
@@ -111,29 +111,29 @@ class BinaryNodeRef(ValueRef):
     
     #calls the BinaryNode's store_refs
     def prepare_to_store(self, storage):
-    """
-    Method that stores refs for the node 
-    
-    Parameter
-    ---------
-    
-    storage: a storage address at which the value is stored
-    
-    """
+        """
+        Method that stores refs for the node 
+        
+        Parameter
+        ---------
+        
+        storage: a storage address at which the value is stored
+        
+        """
         if self._referent:
             self._referent.store_refs(storage)
 
     @staticmethod
     def referent_to_bytes(referent):
-    """
-    Method that uses pickle to convert the node to bytes
-    
-    Parameter
-    ---------
-    
-    referent: the value to be stored in the node
-    
-    """
+        """
+        Method that uses pickle to convert the node to bytes
+        
+        Parameter
+        ---------
+        
+        referent: the value to be stored in the node
+        
+        """
         return pickle.dumps({
             'left': referent.left_ref.address,
             'key': referent.key,
@@ -143,15 +143,15 @@ class BinaryNodeRef(ValueRef):
 
     @staticmethod
     def bytes_to_referent(string):
-    """
-    Method that unpickles bytes to obtain a node object
-    
-    Parameter
-    ---------
-    
-    referent: the value to be stored in the node
-    
-    """
+        """
+        Method that unpickles bytes to obtain a node object
+        
+        Parameter
+        ---------
+        
+        referent: the value to be stored in the node
+        
+        """
         d = pickle.loads(string)
         return BinaryNode(
             BinaryNodeRef(address=d['left']),

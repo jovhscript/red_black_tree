@@ -79,63 +79,63 @@ class ImmutableTreeTest(unittest.TestCase):
 		with self.assertRaises(KeyError):
 			 db.get("pavlos")
                 
-    def test_multiconnect(self):
-        '''
-        Verify that keys can be accessed from multiple reads.
-        '''
-        os.system("rm /tmp/test2.dbdb")
-        db1 = it_connect("/tmp/test2.dbdb")
-        db.set("rahul", "aged")
-        db.commit()
-        db.close()
+	def test_multiconnect(self):
+		'''
+		Verify that keys can be accessed from multiple reads.
+		'''
+		os.system("rm /tmp/test2.dbdb")
+		db1 = it_connect("/tmp/test2.dbdb")
+		db1.set("rahul", "aged")
+		db1.commit()
+		db1.close()
+		
+		db2 = it_connect("/tmp/test2.dbdb")
+		assert db2.get("rahul") == "aged"
+		db2.close()
+		
+	def test_nokey(self):
+		'''
+		Verify that nonexistent keys cannot be accessed
+		'''
+		os.system("rm /tmp/test2.dbdb")
+		db = it_connect("/tmp/test2.dbdb")
+		db.set("pavlos", "aged")
+		db.set("rahul", "aged")
+		db.commit()
+		with self.assertRaises(KeyError):
+			db.get("victor")
+			db.close()
         
-        db2 = it_connect("/tmp/test2.dbdb")
-        assert db2.get("rahul") == "aged"
-        db2.close()
+	def test_overwrite(self):
+		'''
+		Test overwriting of keys
+		'''
+		
+		os.system("rm /tmp/test2.dbdb")
+		db = it_connect("/tmp/test2.dbdb")
+		db.set("pavlos", "aged")
+		db.set("pavlos", "young")
+		db.commit()
+		self.assertEqual(db.get("pavlos"), 'young')
         
-    def test_nokey(self):
-        '''
-        Verify that nonexistent keys cannot be accessed
-        '''
-        os.system("rm /tmp/test2.dbdb")
-        db = it_connect("/tmp/test2.dbdb")
-        db.set("pavlos", "aged")
-        db.set("rahul", "aged")
-        db.commit()
-        with raises(KeyError):
-            db.get("victor")
-        db.close()
-        
-    def test_overwrite(self):
-        '''
-        Test overwriting of keys
-        '''
-        
-        os.system("rm /tmp/test2.dbdb")
-        db = it_connect("/tmp/test2.dbdb")
-        db.set("pavlos", "aged")
-        db.set("pavlos", "young")
-        db.commit()
-        self.assertEqual(db.get("pavlos"), 'young')
-        
-    def test_multiwrite(self):
-        '''
-        Test for writes from multiple db accesses
-        '''
-        
-        os.system("rm /tmp/test2.dbdb")
-        db = it_connect("/tmp/test2.dbdb")
-        db.set("pavlos", "aged")
-        db.commit()
-        db.close()
-        
-        db2 = it_connect("/tmp/test2.dbdb")
-        db2.set("rahul", "young")
-        db2.commit()
-        db2.close()
-        
-        db3 = it_connect("/tmp/test2.dbdb")
-        self.assertEqual(db3.get("pavlos","aged"))
+	def test_multiwrite(self):
+		'''
+		Test for writes from multiple db accesses
+		'''
+		
+		os.system("rm /tmp/test2.dbdb")
+		db = it_connect("/tmp/test2.dbdb")
+		db.set("pavlos", "aged")
+		db.commit()
+		db.close()
+		
+		db2 = it_connect("/tmp/test2.dbdb")
+		db2.set("rahul", "young")
+		db2.commit()
+		db2.close()
+		
+		db3 = it_connect("/tmp/test2.dbdb")
+		self.assertEqual(db3.get("pavlos"), "aged")
         
 class RedBlackTreeTest(unittest.TestCase): 
 	"""
@@ -222,64 +222,64 @@ class RedBlackTreeTest(unittest.TestCase):
 		db.set("rahul", "aged")
 		db.set("victor", "aged")
 		self.assertEqual(db.getRootKey(), 'rahul')		
-
-    def test_multiconnect(self):
-        '''
-        Verify that keys can be accessed from multiple reads.
-        '''
-        os.system("rm /tmp/test2.dbdb")
-        db1 = connect("/tmp/test2.dbdb")
-        db.set("rahul", "aged")
-        db.commit()
-        db.close()
+		
+	def test_multiconnect(self):
+		'''
+		Verify that keys can be accessed from multiple reads.
+		'''
+		os.system("rm /tmp/test2.dbdb")
+		db1 = connect("/tmp/test2.dbdb")
+		db1.set("rahul", "aged")
+		db1.commit()
+		db1.close()
+		
+		db2 = connect("/tmp/test2.dbdb")
+		assert db2.get("rahul") == "aged"
+		db2.close()
+		
+	def test_nokey(self):
+		'''
+		Verify that nonexistent keys cannot be accessed
+		'''
+		os.system("rm /tmp/test2.dbdb")
+		db = connect("/tmp/test2.dbdb")
+		db.set("pavlos", "aged")
+		db.set("rahul", "aged")
+		db.commit()
+		with self.assertRaises(KeyError):
+			db.get("victor")
+			db.close()
         
-        db2 = connect("/tmp/test2.dbdb")
-        assert db2.get("rahul") == "aged"
-        db2.close()
-        
-    def test_nokey(self):
-        '''
-        Verify that nonexistent keys cannot be accessed
-        '''
-        os.system("rm /tmp/test2.dbdb")
-        db = connect("/tmp/test2.dbdb")
-        db.set("pavlos", "aged")
-        db.set("rahul", "aged")
-        db.commit()
-        with raises(KeyError):
-            db.get("victor")
-        db.close()
-        
-    def test_overwrite(self):
-        '''
-        Test overwriting of keys
-        '''
-        
-        os.system("rm /tmp/test2.dbdb")
-        db = connect("/tmp/test2.dbdb")
-        db.set("pavlos", "aged")
-        db.set("pavlos", "young")
-        db.commit()
-        self.assertEqual(db.get("pavlos"), 'young')
-        
-    def test_multiwrite(self):
-        '''
-        Test for writes from multiple db accesses
-        '''
-        
-        os.system("rm /tmp/test2.dbdb")
-        db = connect("/tmp/test2.dbdb")
-        db.set("pavlos", "aged")
-        db.commit()
-        db.close()
-        
-        db2 = connect("/tmp/test2.dbdb")
-        db2.set("rahul", "young")
-        db2.commit()
-        db2.close()
-        
-        db3 = connect("/tmp/test2.dbdb")
-        self.assertEqual(db3.get("pavlos","aged"))
+	def test_overwrite(self):
+		'''
+		Test overwriting of keys
+		'''
+		
+		os.system("rm /tmp/test2.dbdb")
+		db = connect("/tmp/test2.dbdb")
+		db.set("pavlos", "aged")
+		db.set("pavlos", "young")
+		db.commit()
+		self.assertEqual(db.get("pavlos"), 'young')
+		
+	def test_multiwrite(self):
+		'''
+		Test for writes from multiple db accesses
+		'''
+		
+		os.system("rm /tmp/test2.dbdb")
+		db = connect("/tmp/test2.dbdb")
+		db.set("pavlos", "aged")
+		db.commit()
+		db.close()
+		
+		db2 = connect("/tmp/test2.dbdb")
+		db2.set("rahul", "young")
+		db2.commit()
+		db2.close()
+		
+		db3 = connect("/tmp/test2.dbdb")
+		self.assertEqual(db3.get("pavlos"),"aged")
         
 def suite():
 	suite = unittest.TestSuite()
