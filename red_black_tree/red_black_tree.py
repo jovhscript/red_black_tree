@@ -1,4 +1,4 @@
-from immutable_tree import *
+from red_black_tree.immutable_tree import *
 import os
 
 class Color(object):
@@ -271,7 +271,7 @@ class RedBlackTree(BinaryTree):
                                                    left_ref = RedBlackNodeRef(),
                                                    right_ref = RedBlackNodeRef(),
                                                    color = node.color)
-            newright_left_ref = RedBlackNodeRef(referent = newleft_right)
+            newright_left_ref = RedBlackNodeRef(referent = newleft_left)
         else:
             newright_left_ref = RedBlackNodeRef()
                                         
